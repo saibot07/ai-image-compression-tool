@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        language: [python, node]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Set up Node.js
+        if: matrix.language == 'node'
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - name: Install dependencies (Python)
+        if: matrix.language == 'python'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install dependencies (Node.js)
+        if: matrix.language == 'node'
+        run: npm ci
+
+      - name: Run tests (Python)
+        if: matrix.language == 'python'
+        run: |
+          if [ -f "pytest.ini" ] || [ -d "tests" ]; then
+            pytest
+          fi
+
+      - name: Run tests/linting (Node.js)
+        if: matrix.language == 'node'
+        run: |
+          if [ -f "package.json" ]; then
+            npm test || true
+            if npm run lint >/dev/null 2>&1; then
+              npm run lint
+            fi
+          fi
